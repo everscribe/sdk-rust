@@ -18,6 +18,7 @@ tokio = { version = "1", features = ["rt", "sync", "time", "macros"] }
 uuid = { version = "1", features = ["v4"] }
 chrono = { version = "0.4", default-features = false, features = ["clock", "serde", "std"] }
 thiserror = "1"
+log = "0.4"
 
 # Optional: the axum / tower middleware adapter, behind the `axum` feature.
 axum = { version = "0.7", optional = true }
