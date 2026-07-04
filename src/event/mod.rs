@@ -5,8 +5,10 @@
 //! `sdk-python/src/everscribe/event`. The wire format (snake_case keys,
 //! empty fields omitted) is byte-compatible with the sibling SDKs.
 
+mod context;
 mod redact;
 
+pub use context::{client_ip, origin_from_headers, prepare, result_from_status};
 pub use redact::apply_redaction;
 
 use std::collections::BTreeMap;
