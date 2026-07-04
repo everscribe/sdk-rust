@@ -30,10 +30,15 @@ finish. Requires Rust 1.85+.
 
 ## Install
 
+```sh
+cargo add everscribe                    # core
+cargo add everscribe --features axum    # + the axum middleware
+```
+
+or add it to `Cargo.toml` by hand:
+
 ```toml
 [dependencies]
-everscribe = "0.0.0"
-# with the axum middleware:
 everscribe = { version = "0.0.0", features = ["axum"] }
 ```
 
