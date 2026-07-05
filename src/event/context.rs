@@ -60,8 +60,7 @@ where
 }
 
 /// Extract the client IP from `X-Forwarded-For` (first entry), then
-/// `X-Real-IP`, then `remote_addr` (with a trailing `:port` stripped, matching
-/// the sibling SDKs).
+/// `X-Real-IP`, then `remote_addr` (with a trailing `:port` stripped).
 pub fn client_ip<F>(get: F, remote_addr: &str) -> String
 where
     F: Fn(&str) -> Option<String>,

@@ -1,9 +1,7 @@
 //! Event domain: the on-the-wire event model, redaction, and request-context
 //! helpers.
 //!
-//! Mirrors `sdk-go/pkg/event`, `sdk-node/src/event`, and
-//! `sdk-python/src/everscribe/event`. The wire format (snake_case keys,
-//! empty fields omitted) is byte-compatible with the sibling SDKs.
+//! The wire format uses snake_case keys with empty fields omitted.
 
 mod context;
 mod redact;
@@ -81,9 +79,8 @@ impl Origin {
     }
 }
 
-/// Outcome of the audited action. The Rust analog of the other SDKs'
-/// `Result`, renamed to avoid clashing with [`std::result::Result`]; it still
-/// serializes to the wire field `result`.
+/// Outcome of the audited action. Named `Outcome` to avoid clashing with
+/// [`std::result::Result`]; serializes to the wire field `result`.
 ///
 /// `status`: "ok" | "error" | "denied" - empty means unrecorded.
 #[derive(Clone, Debug, Default, PartialEq, Serialize)]
@@ -246,8 +243,8 @@ fn message_is_empty(m: &Option<Value>) -> bool {
     }
 }
 
-/// Serialize a UTC timestamp as RFC 3339 with a `Z` suffix, matching the
-/// sibling SDKs (e.g. `2026-07-01T12:00:00Z`).
+/// Serialize a UTC timestamp as RFC 3339 with a `Z` suffix
+/// (e.g. `2026-07-01T12:00:00Z`).
 fn serialize_rfc3339<S: Serializer>(dt: &DateTime<Utc>, s: S) -> Result<S::Ok, S::Error> {
     s.serialize_str(&dt.to_rfc3339_opts(chrono::SecondsFormat::AutoSi, true))
 }

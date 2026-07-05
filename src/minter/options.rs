@@ -1,6 +1,6 @@
 //! Token mint options and their client-side validation.
 //!
-//! Mirrors the sibling SDKs. Validation runs before any HTTP call; failures
+//! Validation runs before any HTTP call; failures
 //! return [`MinterError::Validation`].
 
 use std::time::Duration;

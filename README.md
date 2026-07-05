@@ -1,11 +1,17 @@
-# everscribe (Rust SDK)
+<p align="center">
+  <img src="assets/everscribe.svg" alt="Everscribe" height="64" align="middle">
+  &nbsp;&nbsp;<b>+</b>&nbsp;&nbsp;
+  <img src="assets/rust.svg" alt="Rust" height="56" align="middle">
+</p>
+
+# sdk-rust
 
 Rust SDK for the [Everscribe](https://everscribe.io) audit-log API. Two
 coordinated surfaces:
 
-- **Recorder** — append-only event ingest. Records who did what, when, on what
-  resource, and — for mutation events — how the resource changed.
-- **Minter** — mints short-lived embed tokens that let a customer's frontend
+- **Recorder** - append-only event ingest. Records who did what, when, on what
+  resource, and, for mutation events, how the resource changed.
+- **Minter** - mints short-lived embed tokens that let a customer's frontend
   mount the Everscribe embeddable component to display events without exposing
   the project API key to the browser.
 
@@ -42,7 +48,7 @@ or add it to `Cargo.toml` by hand:
 everscribe = { version = "0.0.0", features = ["axum"] }
 ```
 
-The crate is organized like the sibling SDKs: `everscribe::event`,
+The crate is organized as: `everscribe::event`,
 `everscribe::recorder`, `everscribe::minter`, and (with the feature)
 `everscribe::axum`. The root of the crate binds credentials once and hands out
 per-surface clients.
@@ -62,7 +68,7 @@ let rec = es.new_recorder(Default::default());
 ```
 
 For 12-factor / containerized deployments, read credentials from the
-environment — `new_from_env` reads `EVERSCRIBE_PROJECT_ID` and
+environment - `new_from_env` reads `EVERSCRIBE_PROJECT_ID` and
 `EVERSCRIBE_API_KEY` and errors naming the missing variable:
 
 ```rust,no_run
@@ -88,7 +94,7 @@ Customers who only need one surface can skip the root client:
 `everscribe::minter::Client::new(project_id, api_key, opts)` both work.
 
 > **Async note.** `record(...).await` only enqueues the event (a background
-> tokio task does the HTTP flush), so it never blocks on the network — it only
+> tokio task does the HTTP flush), so it never blocks on the network - it only
 > `.await`s under `OverflowPolicy::Block` when the buffer is full.
 
 ### 2. Define your actor resolver
@@ -210,7 +216,7 @@ requests) into a single batch call on each flush.
 
 **Empty `action` is a no-op.** The middleware skips auto-record when the
 event's `action` is empty, and both recorders drop empty-action events at send
-time — so handlers that bail out before setting an action produce no event.
+time, so handlers that bail out before setting an action produce no event.
 
 **Overriding the resolver's actor.** When there's no session yet (login,
 signup) or the actor isn't a session user (webhooks, system tasks), set
@@ -244,8 +250,8 @@ pub struct Event {
 ```
 
 Fields use plain values with empty defaults; empty means "not set" and the
-serializer omits them. The JSON wire format is **snake_case** and
-byte-compatible with the Go, Node, and Python SDKs.
+serializer omits them. The JSON wire format is **snake_case** with empty fields
+omitted.
 
 > The outcome type is named **`Outcome`** (not `Result`) to avoid clashing with
 > [`std::result::Result`]; it still serializes to the wire field `result`.
@@ -275,7 +281,7 @@ rec.record(e).await.ok();
 
 ## BufferedRecorder
 
-`recorder::new` (and `Client::new_recorder`) returns a `BufferedRecorder` —
+`recorder::new` (and `Client::new_recorder`) returns a `BufferedRecorder` -
 events enqueue on a bounded channel and a background tokio task flushes batches
 when the size threshold or interval is reached.
 
@@ -307,24 +313,24 @@ OverflowPolicy::Error       // return RecordError::BufferFull
 
 - `close().await` flushes pending events and waits up to `drain_timeout`,
   returning `DrainTimeoutError` if it can't finish. Call once on shutdown.
-- `flush().await` drains everything buffered at call time — useful in tests and
+- `flush().await` drains everything buffered at call time - useful in tests and
   graceful-shutdown sync points.
 - `stats()` returns `dropped` / `flushed` / `flush_errs` / `pending` /
   `buffer_size` for observability.
 
 ### Errors
 
-- `HttpError` — non-2xx from the ingestion endpoint; `.transient()` flags 5xx +
+- `HttpError` - non-2xx from the ingestion endpoint; `.transient()` flags 5xx +
   429 for retry.
-- `RecordError` — `Http` / `Transport` / `Timeout` / `BufferFull`, with a
+- `RecordError` - `Http` / `Transport` / `Timeout` / `BufferFull`, with a
   `.transient()` convenience.
-- `DrainTimeoutError` — `close()` exceeded `drain_timeout`.
+- `DrainTimeoutError` - `close()` exceeded `drain_timeout`.
 
 ---
 
 ## Idempotency
 
-Set `event.idempotency_key` for caller-supplied stable keys — webhook event
+Set `event.idempotency_key` for caller-supplied stable keys - webhook event
 IDs, upstream request IDs, anything that identifies "the same logical event"
 across retries:
 
@@ -354,14 +360,14 @@ use std::time::Duration;
 # async fn f(es: everscribe::Client) -> Result<(), Box<dyn std::error::Error>> {
 let m = es.new_minter(Default::default());
 
-// Single-tenant (or admin) — no tenant_id, sees the whole project:
+// Single-tenant (or admin) - no tenant_id, sees the whole project:
 let token = m.mint_token(&TokenOptions {
     expires_in: Duration::from_secs(60 * 60),
     allowed_columns: Some(vec!["occurred_at".into(), "action".into(), "actor".into()]),
     ..Default::default()
 }).await?;
 
-// Multi-tenant — scoped to the signed-in user's tenant:
+// Multi-tenant - scoped to the signed-in user's tenant:
 let token = m.mint_token(&TokenOptions {
     tenant_id: "acme".into(),
     expires_in: Duration::from_secs(60 * 60),
@@ -380,7 +386,7 @@ scoping.
 | Field | Type | Notes |
 |---|---|---|
 | `tenant_id` | `String` | Scopes reads to a tenant. Trimmed; ≤ 256 chars. Empty = unscoped. |
-| `expires_in` | `Duration` | Server clamps to `[MIN_EXPIRES_IN, MAX_EXPIRES_IN]` (60s–24h). `ZERO` = server default (1h). |
+| `expires_in` | `Duration` | Server clamps to `[MIN_EXPIRES_IN, MAX_EXPIRES_IN]` (60s-24h). `ZERO` = server default (1h). |
 | `allowed_columns` | `Option<Vec<String>>` | Whitelist of Event field names. `None` = no restriction; empty rejected. |
 | `allowed_actions` | `Option<Vec<String>>` | Exact or suffix wildcard (`user.*`). `None` = no restriction; empty rejected. |
 | `allowed_fields` | `Option<Vec<String>>` | Restricts catalog fields for DSL/NLP. Validated server-side. |

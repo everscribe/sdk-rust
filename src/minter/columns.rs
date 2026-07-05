@@ -1,6 +1,6 @@
 //! The set of Event field names accepted by the mint endpoint.
 //!
-//! Hard-coded (as in the Node/Python SDKs) because the wire shape is owned by
+//! Hard-coded because the wire shape is owned by
 //! this SDK. Expanding `event::Event` requires updating this list and the
 //! server's allowlist too.
 

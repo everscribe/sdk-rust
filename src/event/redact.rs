@@ -1,7 +1,7 @@
 //! JSON Pointer (RFC 6901) redaction for event diffs.
 //!
-//! Mirrors the sibling SDKs: values at the given pointer paths are replaced
-//! with the string `"[REDACTED]"`.
+//! Values at the given pointer paths are replaced with the string
+//! `"[REDACTED]"`.
 
 use serde_json::Value;
 

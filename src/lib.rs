@@ -1,10 +1,9 @@
 //! Everscribe Rust SDK.
 //!
-//! Rust SDK for the Everscribe audit-log API, built to parity with the Go,
-//! Node, and Python SDKs. Two coordinated surfaces:
+//! Rust SDK for the Everscribe audit-log API. Two coordinated surfaces:
 //!
-//! - [`recorder`] — append-only event ingest.
-//! - [`minter`] — short-lived embed tokens for frontend audit views.
+//! - [`recorder`] - append-only event ingest.
+//! - [`minter`] - short-lived embed tokens for frontend audit views.
 //!
 //! Bind credentials once with [`new`] (or [`new_from_env`]) and create
 //! per-surface subclients from the returned [`Client`]:

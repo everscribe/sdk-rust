@@ -1,7 +1,6 @@
 //! axum / tower middleware adapter (behind the `axum` cargo feature).
 //!
-//! Mirrors the Go `net/http` middleware, the Node Express adapter, and the
-//! Python ASGI middleware: [`EverscribeLayer`] installs a per-request event
+//! [`EverscribeLayer`] installs a per-request event
 //! (actor via your resolver, origin from headers) reachable in handlers via
 //! the [`CurrentEvent`] extractor, and auto-records it on response finish when
 //! an `action` was set.

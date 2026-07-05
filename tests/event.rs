@@ -1,5 +1,5 @@
 //! Tests for the event domain: construction, builders, redaction, and the
-//! on-the-wire serialization format (byte-compatible with the sibling SDKs).
+//! on-the-wire serialization format (snake_case keys, empty fields omitted).
 
 use chrono::{TimeZone, Utc};
 use everscribe::event::{apply_redaction, Actor, Change, Event, Origin, Outcome, Target};

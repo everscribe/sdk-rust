@@ -1,7 +1,6 @@
 //! Minter: short-lived embed tokens for frontend audit-log views.
 //!
-//! Mirrors `sdk-go/pkg/minter`, `sdk-node/src/minter`, and
-//! `sdk-python/src/everscribe/minter`. An embed token is a signed, short-lived
+//! An embed token is a signed, short-lived
 //! JWT your backend mints (with the project API key) and forwards to your
 //! frontend, which passes it to the Everscribe embed component.
 
