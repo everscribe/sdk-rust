@@ -1,12 +1,19 @@
-//! Event domain: the on-the-wire event model, redaction, and request-context
-//! helpers.
+//! Event domain: the on-the-wire event model, redaction, the request-scoped
+//! record lifecycle, and request-context helpers.
 //!
 //! The wire format uses snake_case keys with empty fields omitted.
+//!
+//! [`scope`], [`current`], [`new_from_context`], [`prepare_event`], and
+//! [`end`] are the framework-neutral record lifecycle: a transport adapter
+//! (the `axum` feature today) drives it by supplying transport bindings
+//! only. See `lifecycle`'s module docs for the design.
 
 mod context;
+mod lifecycle;
 mod redact;
 
-pub use context::{client_ip, origin_from_headers, prepare, result_from_status};
+pub use context::{client_ip, origin_from_headers, outcome_from_http_status, prepare};
+pub use lifecycle::{current, end, new_from_context, prepare_event, scope, EventHandle, OutcomeCapture, Recorder};
 pub use redact::apply_redaction;
 
 use std::collections::BTreeMap;

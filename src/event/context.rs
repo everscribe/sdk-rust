@@ -22,10 +22,20 @@ pub fn prepare(e: &mut Event) {
     }
 }
 
-/// Derive an [`Outcome`] from a captured HTTP status. Status `0` (no response
-/// written) maps to an error - typically an early return or panic before any
-/// response.
-pub fn result_from_status(status: u16) -> Outcome {
+/// Derive an [`Outcome`] from an HTTP status code. Opt-in: core never calls
+/// this implicitly, since a bare status number cannot serve every transport
+/// (gRPC's OK status is code 0, colliding with the "nothing written yet"
+/// sentinel an integer would otherwise need). An HTTP-shaped adapter calls
+/// this explicitly - typically to build the [`Outcome`] it hands to
+/// [`crate::event::end`] once its response is final - rather than each
+/// adapter carrying its own copy of the table. Named to match `sdk-go`'s
+/// `ResultFromHTTPStatus` and `sdk-node`'s `resultFromHttpStatus`; the
+/// `outcome_` prefix (not `result_`) matches this SDK's own type name,
+/// [`Outcome`], chosen so as not to clash with [`std::result::Result`].
+///
+/// Status `0` (no response written) maps to an error - typically an early
+/// return or panic before any response.
+pub fn outcome_from_http_status(status: u16) -> Outcome {
     if status == 0 {
         return Outcome {
             status: "error".to_string(),

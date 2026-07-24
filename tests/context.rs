@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use chrono::{DateTime, Utc};
 use everscribe::event::{
-    client_ip, origin_from_headers, prepare, result_from_status, Event, Origin,
+    client_ip, origin_from_headers, prepare, outcome_from_http_status, Event, Origin,
 };
 
 /// Build a case-insensitive header lookup closure from lowercase-keyed pairs.
@@ -45,7 +45,7 @@ fn prepare_leaves_set_fields() {
 #[test]
 fn status_ok_range() {
     for code in [200u16, 201, 302, 399] {
-        let o = result_from_status(code);
+        let o = outcome_from_http_status(code);
         assert_eq!(o.status, "ok");
         assert_eq!(o.code, i32::from(code));
     }
@@ -54,7 +54,7 @@ fn status_ok_range() {
 #[test]
 fn status_denied() {
     for code in [401u16, 403] {
-        let o = result_from_status(code);
+        let o = outcome_from_http_status(code);
         assert_eq!(o.status, "denied");
         assert_eq!(o.code, i32::from(code));
     }
@@ -62,14 +62,14 @@ fn status_denied() {
 
 #[test]
 fn status_error() {
-    let o = result_from_status(500);
+    let o = outcome_from_http_status(500);
     assert_eq!(o.status, "error");
     assert_eq!(o.code, 500);
 }
 
 #[test]
 fn status_zero_no_response() {
-    let o = result_from_status(0);
+    let o = outcome_from_http_status(0);
     assert_eq!(o.status, "error");
     assert_eq!(o.code, 0);
     assert_eq!(o.message, Some(serde_json::json!("no response written")));
