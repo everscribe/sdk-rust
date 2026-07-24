@@ -1,3 +1,7 @@
 /target
 Cargo.lock
 .DS_Store
+
+# subagent scratch reports
+.*-report.md
+.grpc-spike.md
