@@ -5,6 +5,15 @@
 //! the [`CurrentEvent`] extractor, and auto-records it on response finish when
 //! an `action` was set.
 //!
+//! This adapter supplies only transport bindings on top of the
+//! framework-neutral record lifecycle in [`crate::event`]
+//! ([`crate::event::scope`], [`crate::event::current`],
+//! [`crate::event::end`]): [`CurrentEvent`] is a thin wrapper over
+//! [`crate::event::EventHandle`], and the dedupe flag, idempotency-key
+//! stamp, and "no response written" sentinel rule all live in core, not
+//! here. A future actix-web or tonic adapter reuses the same core and wires
+//! up only its own actor/origin extraction and its own final-outcome call.
+//!
 //! ```no_run
 //! use axum::{routing::post, Router};
 //! use everscribe::axum::{CurrentEvent, EverscribeLayer};
@@ -30,7 +39,7 @@
 use std::convert::Infallible;
 use std::future::Future;
 use std::pin::Pin;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::task::{Context, Poll};
 
 use axum::extract::{FromRequestParts, Request};
@@ -38,8 +47,7 @@ use axum::response::Response;
 use http::request::Parts;
 use tower::{Layer, Service};
 
-use crate::event::{origin_from_headers, prepare, result_from_status, Actor, Event};
-use crate::recorder::Recorder;
+use crate::event::{self, outcome_from_http_status, origin_from_headers, Actor, Event, EventHandle};
 
 /// Derives the [`Actor`] for a request from its parts (headers, extensions such
 /// as a session set by an earlier layer, etc.).
@@ -49,28 +57,17 @@ impl<F: Fn(&Parts) -> Actor + Send + Sync + 'static> ActorResolver for F {}
 /// A handle to the per-request event, installed by [`EverscribeLayer`] and
 /// pulled into handlers as an extractor. Mutate it via [`CurrentEvent::with`];
 /// the middleware records it on response finish when `action` is set.
+///
+/// A thin wrapper over [`crate::event::EventHandle`] - the framework-neutral
+/// primitive - so this extractor is not where the record lifecycle lives,
+/// only where axum reaches it from.
 #[derive(Clone)]
-pub struct CurrentEvent(Arc<Mutex<Event>>);
+pub struct CurrentEvent(EventHandle);
 
 impl CurrentEvent {
-    fn wrap(e: Event) -> Self {
-        CurrentEvent(Arc::new(Mutex::new(e)))
-    }
-
-    /// A detached handle (never auto-recorded), returned when the middleware
-    /// isn't mounted.
-    fn detached() -> Self {
-        CurrentEvent::wrap(Event::default())
-    }
-
     /// Mutate the per-request event.
     pub fn with<T>(&self, f: impl FnOnce(&mut Event) -> T) -> T {
-        let mut guard = self.0.lock().expect("event mutex poisoned");
-        f(&mut guard)
-    }
-
-    fn snapshot(&self) -> Event {
-        self.0.lock().expect("event mutex poisoned").clone()
+        self.0.with(f)
     }
 }
 
@@ -78,12 +75,14 @@ impl CurrentEvent {
 impl<S: Send + Sync> FromRequestParts<S> for CurrentEvent {
     type Rejection = Infallible;
 
-    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Infallible> {
-        Ok(parts
-            .extensions
-            .get::<CurrentEvent>()
-            .cloned()
-            .unwrap_or_else(CurrentEvent::detached))
+    async fn from_request_parts(_parts: &mut Parts, _state: &S) -> Result<Self, Infallible> {
+        // event::current() reads the ambient task-local lifecycle state
+        // EverscribeService installed via event::scope around the whole
+        // inner.call - the same primitive any future actix-web/tonic
+        // adapter's equivalent extractor would call. It already falls back
+        // to a detached handle when no lifecycle is installed, so no
+        // request-extension lookup is needed here at all.
+        Ok(CurrentEvent(event::current()))
     }
 }
 
@@ -149,7 +148,7 @@ impl<S, R, F> Service<Request> for EverscribeService<S, R, F>
 where
     S: Service<Request, Response = Response> + Clone + Send + 'static,
     S::Future: Send + 'static,
-    R: Recorder + Send + Sync + 'static,
+    R: crate::recorder::Recorder + Send + Sync + 'static,
     F: ActorResolver,
 {
     type Response = Response;
@@ -169,7 +168,7 @@ where
         let resolve = self.resolve.clone();
 
         Box::pin(async move {
-            let (mut parts, body) = req.into_parts();
+            let (parts, body) = req.into_parts();
 
             let actor = (resolve)(&parts);
             let origin = origin_from_headers(
@@ -188,22 +187,21 @@ where
                 ..Event::default()
             };
 
-            let current = CurrentEvent::wrap(tmpl);
-            parts.extensions.insert(current.clone());
+            // axum's tower Service only sees a finished Response after the
+            // whole handler future resolves, so there is no live outcome to
+            // install ahead of time - capture is None going into scope.
+            // event::current() (what CurrentEvent's extractor calls) reads
+            // the current-event handle this installs for the duration of
+            // `fut`, so handlers reach it with no argument at all.
+            let (call_result, current) = event::scope(tmpl, None, async move {
+                inner.call(Request::from_parts(parts, body)).await
+            })
+            .await;
 
-            let resp = inner.call(Request::from_parts(parts, body)).await?;
-            let status = resp.status().as_u16();
-
-            let mut ev = current.snapshot();
-            if !ev.action.is_empty() {
-                prepare(&mut ev);
-                if ev.outcome.is_empty() {
-                    ev.outcome = result_from_status(status);
-                }
-                if let Err(err) = recorder.record(ev).await {
-                    log::error!("everscribe: auto-record failed: {err}");
-                }
-            }
+            let resp = call_result?;
+            let outcome = outcome_from_http_status(resp.status().as_u16());
+            let recorder: &dyn event::Recorder = recorder.as_ref();
+            event::end(&current, Some(&outcome), Some(recorder)).await;
             Ok(resp)
         })
     }
