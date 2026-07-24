@@ -26,13 +26,31 @@ tower = { version = "0.5", optional = true }
 http = { version = "1", optional = true }
 
 # Optional: the actix-web adapter, behind the `actix` feature. actix-web pulls
-# in the `http` crate at 0.2, not the 1.x the axum feature uses, so it is
-# kept as its own optional dependency rather than shared.
+# in the `http` crate at 0.2, not the 1.x the axum/tonic features use, so it
+# is kept as its own optional dependency rather than shared.
 actix-web = { version = "4", optional = true, default-features = false }
+
+# Optional: the tonic / tower gRPC adapter, behind the `tonic` feature.
+# default-features = false: the adapter itself only needs tonic's core
+# Status/Code/body::Body types (all unconditionally compiled, not behind any
+# tonic feature), not its transport/server/client machinery - that stays a
+# test-only concern in dev-dependencies, so a consumer that only wants the
+# tower Layer does not also pull in hyper, h2, and friends transitively.
+tonic = { version = "0.14", optional = true, default-features = false }
+http-body = { version = "1", optional = true }
 
 [features]
 axum = ["dep:axum", "dep:tower", "dep:http"]
 actix = ["dep:actix-web"]
+tonic = ["dep:tonic", "dep:tower", "dep:http", "dep:http-body", "dep:tonic-prost-build"]
+
+[build-dependencies]
+# Only used to compile tests/proto/echo.proto for the tonic adapter's own
+# integration tests (a real server over a real channel); see build.rs, which
+# is cfg-gated on the `tonic` feature so `protoc` is never required to build
+# this crate without it. tonic 0.13+ split protobuf-specific codegen out of
+# tonic-build into this crate.
+tonic-prost-build = { version = "0.14", optional = true }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "sync"] }
@@ -41,3 +59,11 @@ axum = "0.7"
 tower = { version = "0.5", features = ["util"] }
 http = "1"
 actix-web = "4"
+tonic = { version = "0.14", features = ["transport", "codegen"] }
+# The runtime half of the same split: tonic-build/tonic-prost-build generate
+# code that references tonic_prost::ProstCodec directly.
+tonic-prost = "0.14"
+prost = "0.14"
+async-stream = "0.3"
+futures-core = "0.3"
+tokio-stream = { version = "0.1", features = ["net"] }

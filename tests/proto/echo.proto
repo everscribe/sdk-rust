@@ -1,0 +1,36 @@
+// Test-only fixture for the tonic adapter's integration tests
+// (tests/tonic.rs). Not part of the public API.
+syntax = "proto3";
+
+package everscribe.testpb;
+
+service Echo {
+  // Unary. Used for: action defaults to the full method name, a
+  // handler-set action wins, actor/origin resolution, current() reachable
+  // inside the handler.
+  rpc Say(SayRequest) returns (SayReply);
+
+  // Unary, returns whatever gRPC status the caller asks for. Used for the
+  // exhaustive 17-code mapping test, plus PERMISSION_DENIED -> denied/403
+  // and OK -> code 200 (never 0).
+  rpc Fail(FailRequest) returns (SayReply);
+
+  // Server streaming. Used for the streaming scope decision: whether
+  // current() set from within the handler (before and while items are
+  // produced) still lands on the one event the adapter records at stream
+  // close.
+  rpc ListSay(SayRequest) returns (stream SayReply);
+}
+
+message SayRequest {
+  string message = 1;
+  bool set_action = 2;
+}
+
+message FailRequest {
+  int32 code = 1;
+}
+
+message SayReply {
+  string message = 1;
+}
