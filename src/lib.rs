@@ -18,13 +18,15 @@
 //!
 //! Customers who only need one surface can call its constructor directly -
 //! [`recorder::new`] and [`minter::Client::new`] both work and skip the client
-//! step. An optional axum middleware lives in [`axum`] (enable the `axum`
-//! feature).
+//! step. Optional framework adapters live in [`axum`] (the `axum` feature)
+//! and [`actix`] (the `actix` feature).
 
 pub mod event;
 pub mod minter;
 pub mod recorder;
 
+#[cfg(feature = "actix")]
+pub mod actix;
 #[cfg(feature = "axum")]
 pub mod axum;
 
