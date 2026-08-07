@@ -26,6 +26,35 @@ pub trait Recorder {
     fn record(&self, event: Event) -> impl Future<Output = Result<(), RecordError>> + Send;
 }
 
+/// Forwards through a shared handle so one recorder can be both mounted
+/// on an adapter and closed on shutdown.
+///
+/// The adapters (`EverscribeLayer` and friends) take the recorder **by
+/// value** and wrap it in a private `Arc` with no accessor, so without
+/// this impl a mounted recorder is unreachable and `close()` can never
+/// be called. Every buffered event is then dropped at shutdown, which
+/// for an audit trail loses exactly the events immediately before a
+/// deploy or a crash.
+///
+/// With this impl the idiom the docs describe actually works:
+///
+/// ```no_run
+/// # use std::sync::Arc;
+/// # async fn f(rec: everscribe::recorder::BufferedRecorder) {
+/// let rec = Arc::new(rec);
+/// // mount Arc::clone(&rec) on your adapter, then on shutdown:
+/// let _ = rec.close().await;
+/// # }
+/// ```
+impl<T> Recorder for std::sync::Arc<T>
+where
+    T: Recorder + Send + Sync + ?Sized,
+{
+    fn record(&self, event: Event) -> impl Future<Output = Result<(), RecordError>> + Send {
+        (**self).record(event)
+    }
+}
+
 /// Optional capability for recorders that persist multiple events in one call.
 /// [`BufferedRecorder`] uses it to flush batches.
 pub trait BatchRecorder: Send + Sync + 'static {
