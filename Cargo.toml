@@ -1,6 +1,6 @@
 [package]
 name = "everscribe"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 rust-version = "1.85"
 license = "MIT"
@@ -9,6 +9,15 @@ repository = "https://github.com/everscribe/sdk-rust"
 readme = "README.md"
 keywords = ["everscribe", "audit-log", "audit", "sdk"]
 categories = ["api-bindings"]
+
+# docs.rs builds with default features unless told otherwise, and every
+# adapter here is optional. Without this the published docs show the core
+# recorder and nothing else: no EverscribeLayer, no CurrentEvent, no actix
+# or tonic. docsrs lets gated items carry a "Available on crate feature"
+# badge via cfg_attr.
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }

@@ -38,7 +38,7 @@
 //! # Result.code is the canonical HTTP equivalent, never the native gRPC code
 //!
 //! [`crate::event::Outcome::code`] carries the HTTP-equivalent status
-//! ([`http_status_for_grpc`], ported from `sdk-go`'s
+//! (`http_status_for_grpc`, ported from `sdk-go`'s
 //! `pkg/event/adapter_codes.go`), not the raw gRPC code. This is
 //! deliberate, not cosmetic: gRPC's OK is code 0, which every wire encoder in
 //! every one of this SDK's sibling implementations drops as empty
